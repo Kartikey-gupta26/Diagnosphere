@@ -1,0 +1,7 @@
+open cmd in this directory C:\Users\karti\Desktop\Projects\DiagnoSphere
+
+activate virtual env
+tarpapp\Scripts\activate  
+
+run main app
+python -m app.main

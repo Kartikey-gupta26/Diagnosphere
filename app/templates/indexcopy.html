@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DiagnoSphere</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .upload-area {
+            border: 2px dashed #ced4da;
+            border-radius: 5px;
+            padding: 3rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .upload-area:hover {
+            border-color: #0d6efd;
+            background-color: #f8f9fa;
+        }
+        #preview {
+            max-width: 100%;
+            max-height: 300px;
+            margin-top: 20px;
+            display: none;
+        }
+        .result-card {
+            display: none;
+            margin-top: 20px;
+        }
+        .progress {
+            height: 20px;
+            margin-top: 10px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white">
+                        <h3 class="mb-0">DiagnoSphere Medical Diagnosis</h3>
+                    </div>
+                    <div class="card-body">
+                        <div id="upload-area" class="upload-area">
+                            <h5>Upload Medical Image</h5>
+                            <p class="text-muted">Drag & drop or click to browse</p>
+                            <input type="file" id="file-input" accept="image/*" class="d-none">
+                            <div class="progress">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar"></div>
+                            </div>
+                        </div>
+                        <img id="preview" class="img-fluid rounded">
+                        
+                        <div id="result-card" class="result-card card mt-3">
+                            <div class="card-header bg-info text-white">
+                                <h5 class="mb-0">Diagnosis Results</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="result-content"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const fileInput = document.getElementById('file-input');
+        const uploadArea = document.getElementById('upload-area');
+        const preview = document.getElementById('preview');
+        const resultCard = document.getElementById('result-card');
+        const resultContent = document.getElementById('result-content');
+        const progressBar = document.querySelector('.progress-bar');
+        const progressContainer = document.querySelector('.progress');
+
+        // Handle drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('border-primary');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('border-primary');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('border-primary');
+            if (e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+                handleFileSelect();
+            }
+        });
+
+        // Handle click
+        uploadArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', handleFileSelect);
+
+        function handleFileSelect() {
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            // Validate file type
+            const validTypes = ['image/jpeg', 'image/png'];
+            if (!validTypes.includes(file.type)) {
+                alert('Please upload a JPEG or PNG image');
+                return;
+            }
+
+            // Show preview
+            preview.src = URL.createObjectURL(file);
+            preview.style.display = 'block';
+            resultCard.style.display = 'none';
+
+            // Process file
+            processImage(file);
+        }
+
+        async function processImage(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                // Show progress
+                progressContainer.style.display = 'block';
+                progressBar.style.width = '0%';
+                progressBar.textContent = '0%';
+
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.status === 'error') {
+                    throw new Error(data.message);
+                }
+
+                // Display results
+                resultContent.innerHTML = `
+                    <p><strong>Image Type:</strong> ${data.result.domain} (${(data.result.domain_confidence * 100).toFixed(1)}%)</p>
+                    <p><strong>Diagnosis:</strong> ${data.result.diagnosis} (${(data.result.diagnosis_confidence * 100).toFixed(1)}%)</p>
+                `;
+                resultCard.style.display = 'block';
+
+            } catch (error) {
+                resultContent.innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
+                resultCard.style.display = 'block';
+            } finally {
+                progressContainer.style.display = 'none';
+            }
+        }
+
+        // Simulate progress for demo (remove in production)
+        function simulateProgress() {
+            let width = 0;
+            const interval = setInterval(() => {
+                if (width >= 100) {
+                    clearInterval(interval);
+                } else {
+                    width += 5;
+                    progressBar.style.width = `${width}%`;
+                    progressBar.textContent = `${width}%`;
+                }
+            }, 200);
+        }
+    </script>
+</body>
+</html>

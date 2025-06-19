@@ -4,6 +4,9 @@ venv/
 ENV/
 .venv/
 .python-version
+tarpapp/Lib/
+tarpapp/Lib/site-packages/
+
 
 # Ignore Python bytecode
 __pycache__/
